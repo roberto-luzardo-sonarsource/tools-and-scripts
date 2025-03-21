@@ -131,7 +131,7 @@ def get_on_time_resolution_rate(project_key):
     return json.dumps(on_time_rates, indent=4)
 
 if __name__ == "__main__":
-    project_key = 'kover-jacoco'
+    project_key = 'replace-me' #Replace with your project key
     severity_distribution = get_issue_distribution(project_key)
     print(severity_distribution)
     coverage_rate = get_codecoverage_rate(project_key)
