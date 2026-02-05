@@ -62,68 +62,6 @@ python sonarqube_false_positives.py -u <SONARQUBE_URL> -t <AUTH_TOKEN>
 | `--token` | `-t` | No | Authentication token | None |
 | `--output` | `-o` | No | Output CSV file path | `sonarqube_false_positives.csv` |
 
-### Examples
-
-#### Example 1: Basic usage with token authentication
-```bash
-python sonarqube_false_positives.py \
-  --url http://localhost:9000 \
-  --token squ_abc123def456
-```
-
-#### Example 2: Using HTTPS with custom output file
-```bash
-python sonarqube_false_positives.py \
-  --url https://sonarqube.example.com \
-  --token squ_abc123def456 \
-  --output my_custom_report.csv
-```
-
-#### Example 3: Short form arguments
-```bash
-python sonarqube_false_positives.py \
-  -u https://robertol.ngrok.io/ \
-  -t squ_ca864dbb9352de1c7bcae769680a8bea959dc717 \
-  -o custom_report.csv
-```
-
-#### Example 4: Without authentication (public SonarQube instance)
-```bash
-python sonarqube_false_positives.py \
-  --url http://localhost:9000 \
-  --output report.csv
-```
-
-## Authentication
-
-### Generating a SonarQube Token
-
-1. Log in to your SonarQube instance
-2. Click on your user avatar (top right)
-3. Go to **My Account** → **Security**
-4. Under "Generate Tokens":
-   - Enter a token name (e.g., "false-positive-reporter")
-   - Select token type (User Token recommended)
-   - Click **Generate**
-5. Copy the generated token immediately (it won't be shown again)
-
-### Token Format
-SonarQube tokens typically start with `squ_` followed by a long alphanumeric string.
-
-Example: `squ_abc123def456ghi789jkl012mno345`
-
-## Output
-
-### CSV Report Format
-
-The generated CSV file contains three columns:
-
-| Column | Description |
-|--------|-------------|
-| **Project Name** | The name of the SonarQube project |
-| **Number of Issues** | Count of false positive issues in the project |
-| **Rule IDs** | Comma-separated list of rule IDs that generated false positives |
-
 ### Sample Output
 
 ```csv
