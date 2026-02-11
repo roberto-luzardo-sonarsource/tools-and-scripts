@@ -8,6 +8,8 @@ This tool connects to a SonarQube server, iterates through all projects, and col
 - Project names
 - Number of false positive issues per project
 - List of rule IDs that generated the false positive issues
+- Quality gate used by each project
+- Quality profiles associated with each project
 
 ## Requirements
 
@@ -65,10 +67,10 @@ python sonarqube_false_positives.py -u <SONARQUBE_URL> -t <AUTH_TOKEN>
 ### Sample Output
 
 ```csv
-Project Name,Number of Issues,Rule IDs
-My Web Application,5,java:S1234, java:S5678
-Backend API,12,python:S9012, python:S3456, python:S7890
-Frontend Dashboard,3,javascript:S2468
+Project Name,Number of Issues,Rule IDs,Quality Gate,Quality Profiles
+My Web Application,5,java:S1234, java:S5678,Sonar way,java: Sonar way
+Backend API,12,python:S9012, python:S3456, python:S7890,Custom Gate,py: Custom Python Profile
+Frontend Dashboard,3,javascript:S2468,Sonar way,js: Sonar way; ts: Sonar way
 ```
 
 ### Console Output

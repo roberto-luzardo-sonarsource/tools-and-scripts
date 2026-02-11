@@ -76,17 +76,17 @@ class SonarQubeClient:
     def get_false_positive_issues(self, project_key: str) -> List[Dict]:
         """
         Get all issues marked as false positives for a specific project
-        
+
         Args:
             project_key: The project key
-            
+
         Returns:
             List of issue dictionaries
         """
         issues = []
         page = 1
         page_size = 500
-        
+
         while True:
             url = f"{self.base_url}/api/issues/search"
             params = {
@@ -95,99 +95,170 @@ class SonarQubeClient:
                 'p': page,
                 'ps': page_size
             }
-            
+
             try:
                 response = self.session.get(url, params=params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 issues.extend(data.get('issues', []))
-                
+
                 # Check if there are more pages
                 paging = data.get('paging', {})
                 total = paging.get('total', 0)
-                
+
                 if page * page_size >= total:
                     break
-                    
+
                 page += 1
-                
+
             except requests.exceptions.RequestException as e:
                 print(f"Error fetching issues for project {project_key}: {e}", file=sys.stderr)
                 break
-        
+
         return issues
+
+    def get_project_quality_gate(self, project_key: str) -> str:
+        """
+        Get the quality gate associated with a project
+
+        Args:
+            project_key: The project key
+
+        Returns:
+            Quality gate name or 'N/A' if not found
+        """
+        url = f"{self.base_url}/api/qualitygates/get_by_project"
+        params = {'project': project_key}
+
+        try:
+            response = self.session.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            quality_gate = data.get('qualityGate', {})
+            return quality_gate.get('name', 'N/A')
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching quality gate for project {project_key}: {e}", file=sys.stderr)
+            return 'N/A'
+
+    def get_quality_profiles_for_project(self, project_key: str) -> Dict[str, str]:
+        """
+        Get quality profiles associated with a project
+
+        Args:
+            project_key: The project key
+
+        Returns:
+            Dictionary mapping language to quality profile name
+        """
+        url = f"{self.base_url}/api/qualityprofiles/search"
+        params = {'project': project_key}
+
+        try:
+            response = self.session.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            profiles = {}
+            for profile in data.get('profiles', []):
+                language = profile.get('language', 'unknown')
+                name = profile.get('name', 'N/A')
+                profiles[language] = name
+
+            return profiles
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching quality profiles for project {project_key}: {e}", file=sys.stderr)
+            return {}
 
 
 def analyze_false_positives(sonarqube_url: str, token: str = None) -> List[Dict]:
     """
     Analyze false positive issues across all projects
-    
+
     Args:
         sonarqube_url: SonarQube server URL
         token: Authentication token (optional)
-        
+
     Returns:
         List of dictionaries with project analysis results
     """
     client = SonarQubeClient(sonarqube_url, token)
-    
+
     print("Fetching all projects...")
     projects = client.get_all_projects()
     print(f"Found {len(projects)} projects")
-    
+
     results = []
-    
+
     for i, project in enumerate(projects, 1):
         project_key = project.get('key')
         project_name = project.get('name', project_key)
-        
+
         print(f"Processing project {i}/{len(projects)}: {project_name}")
-        
+
         # Get false positive issues for this project
         issues = client.get_false_positive_issues(project_key)
-        
+
         # Collect unique rule IDs
         rule_ids: Set[str] = set()
         for issue in issues:
             rule = issue.get('rule')
             if rule:
                 rule_ids.add(rule)
-        
+
+        # Get quality gate for the project
+        quality_gate = client.get_project_quality_gate(project_key)
+
+        # Get quality profiles for the project
+        quality_profiles = client.get_quality_profiles_for_project(project_key)
+
         results.append({
             'project_name': project_name,
             'project_key': project_key,
             'issue_count': len(issues),
-            'rule_ids': sorted(list(rule_ids))
+            'rule_ids': sorted(list(rule_ids)),
+            'quality_gate': quality_gate,
+            'quality_profiles': quality_profiles
         })
-    
+
     return results
 
 
 def export_to_csv(results: List[Dict], output_file: str = 'sonarqube_false_positives.csv'):
     """
     Export results to CSV file
-    
+
     Args:
         results: List of project analysis results
         output_file: Output CSV file path
     """
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Project Name', 'Number of Issues', 'Rule IDs']
+        fieldnames = ['Project Name', 'Number of Issues', 'Rule IDs', 'Quality Gate', 'Quality Profiles']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
+
         writer.writeheader()
-        
+
         for result in results:
             # Convert rule IDs list to comma-separated string
             rule_ids_str = ', '.join(result['rule_ids']) if result['rule_ids'] else ''
-            
+
+            # Convert quality profiles dict to formatted string
+            quality_profiles_str = ''
+            if result.get('quality_profiles'):
+                profiles_list = [f"{lang}: {name}" for lang, name in result['quality_profiles'].items()]
+                quality_profiles_str = '; '.join(profiles_list)
+
             writer.writerow({
                 'Project Name': result['project_name'],
                 'Number of Issues': result['issue_count'],
-                'Rule IDs': rule_ids_str
+                'Rule IDs': rule_ids_str,
+                'Quality Gate': result.get('quality_gate', 'N/A'),
+                'Quality Profiles': quality_profiles_str
             })
-    
+
     print(f"\nReport exported to: {output_file}")
 
 
