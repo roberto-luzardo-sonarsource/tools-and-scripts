@@ -15,6 +15,14 @@ from typing import List, Dict, Set
 from collections import defaultdict
 
 
+RULE_TYPE_TO_SOFTWARE_QUALITY = {
+    'CODE_SMELL': ['MAINTAINABILITY'],
+    'BUG': ['RELIABILITY'],
+    'VULNERABILITY': ['SECURITY'],
+    'SECURITY_HOTSPOT': ['SECURITY'],
+}
+
+
 class SonarQubeClient:
     """Client for interacting with SonarQube Web API"""
     
@@ -32,6 +40,29 @@ class SonarQubeClient:
         if token:
             # Use token authentication
             self.session.auth = (token, '')
+
+    def _get_projects_page(self, page: int, page_size: int) -> Dict:
+        """Fetch one page of projects using endpoints available across server versions."""
+        params = {
+            'p': page,
+            'ps': page_size
+        }
+        last_error = None
+
+        for endpoint in ('/api/components/search_projects', '/api/projects/search'):
+            url = f"{self.base_url}{endpoint}"
+
+            try:
+                response = self.session.get(url, params=params)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.RequestException as e:
+                last_error = e
+
+        if last_error:
+            raise last_error
+
+        return {'components': [], 'paging': {'total': 0}}
         
     def get_all_projects(self) -> List[Dict]:
         """
@@ -45,16 +76,8 @@ class SonarQubeClient:
         page_size = 500
         
         while True:
-            url = f"{self.base_url}/api/projects/search"
-            params = {
-                'p': page,
-                'ps': page_size
-            }
-            
             try:
-                response = self.session.get(url, params=params)
-                response.raise_for_status()
-                data = response.json()
+                data = self._get_projects_page(page, page_size)
                 
                 projects.extend(data.get('components', []))
                 

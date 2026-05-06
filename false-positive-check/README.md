@@ -66,6 +66,10 @@ pip install requests
 python sonarqube_false_positives.py -u <SONARQUBE_URL> -t <AUTH_TOKEN>
 ```
 
+```bash
+python sonarqube_false_positives.py -u <SONARQUBE_URL> -t <AUTH_TOKEN> -o projects.csv -r rules.csv
+```
+
 ### Command-Line Arguments
 
 | Argument | Short | Required | Description | Default |
@@ -161,3 +165,8 @@ Top 5 rules generating most false positives:
   - java:S5678: 18 issues (Severity: MAJOR)
   - python:S3456: 15 issues (Severity: INFO)
 ```
+
+## Compatibility Notes
+
+- SonarQube 9.9 is supported.
+- When `api/rules/show` does not return rule `impacts`, the script falls back to the rule type to populate the `Software Qualities` column.
